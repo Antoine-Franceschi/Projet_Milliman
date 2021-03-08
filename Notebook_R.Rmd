@@ -1,0 +1,112 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Testing the Martingale hypothesis
+Introduction: 
+
+On se donne $\{𝑌_𝑡 \}_{𝑡=−∞}^{+∞}$ une série temporelle stationnaire et $𝐼_𝑡={𝑌_𝑡, …,𝑌_0 }$ l’information disponible à la date 𝑡
+
+# MDS
+$𝑌_𝑡$ définit une séquence de différences de martingales (MDS) si :
+
+$$ 𝔼[𝑌_𝑡 |𝐼_{𝑡−1} ]=0 $$
+# MDH
+Plus généralement on dit que $𝑌_𝑡$ satisfait l’hypothèse de différences de martingales (MDH)  si :
+$$ 𝔼[𝑌_𝑡 |𝐼_{𝑡−1} ]=𝜇∈ℝ~~~~~~~~~~~~~~(2)$$
+Intuitivement cette hypothèse indique que le présent et le passé ne donnent pas plus d’information sur le futur que la moyenne du processus $𝒀_𝒕$ elle-même ($𝔼[𝑌_𝑡 ]=𝜇$). Autrement, dit que le meilleur prédicteur du futur au sens des moindres carrés est $𝜇$.
+
+
+La propriété fondamentale découlant de la MDH est que $𝑌_𝑡$ est non prédictible au sens des moindres carrés pour toute transformation linéaire ou non linéaire de l’information passée $𝜔(𝐼_{𝑡−1})$, i.e. de covariance nulle :
+$$ 𝔼[𝑌_𝑡 |𝐼_{𝑡−1} ]=𝜇∈ℝ↔𝔼[(𝑌_𝑡−𝜇)𝜔(𝐼_{𝑡−1})]=0$$
+En particulier, on note que toutes les autocorrélations (lag >0) de $𝑌_𝑡$ sont nulles. 
+
+Rappelez-vous la définition de mds dans l'équation (2) qui devrait tenir pour toute fonction w(). L'approche la plus simple consiste à considérer les fonctions linéaires w() ; telles que $ w(I_{t-1})= Y_{t-j}$ pour tout $j \geq 1$
+Par conséquent, une condition nécessaire (mais pas suffisante, en général) pour que la MDH tienne est que les séries ne soient pas corrélées, c'est-à-dire
+
+$$ \gamma_j= Cov(Y_t,Y_{t-j})=𝔼[(𝑌_𝑡−𝜇)Y_{t-j}]=0~~~~~~~\forall j \geq1 $$
+
+```{r}
+rm(list=ls()) # Removes all existing variables
+```
+
+# parseur: 
+```{r}
+Sample = read.table("name",sep=";",header=FALSE) # This command returns an object of the class data.frame
+tab_X_1 = as.matrix(Sample) # For our purpose it is better to convert it into a matrix
+n = dim(tab_X_1)[1] # Number of rows
+p = dim(tab_X_1)[2] # Number of columns
+X1_char = tab_X_1[2:n,p] 
+
+Sample_2 = read.table("name2",sep=";",header=FALSE) # This command returns an object of the class data.frame
+tab_X_2 = as.matrix(Sample_2) # For our purpose it is better to convert it into a matrix
+number_of_rows = dim(tab_X_2)[1] # Number of rows
+number_of_columns = dim(tab_X_2)[2] # Number of columns
+X2_char = tab_X_2[2:number_of_rows,number_of_columns] 
+
+
+X_1=c()
+for (k in 1:length(X1_char)){
+  X_1<-c(X_1,as.numeric(X1_char[k]))
+}
+X_2=c()
+for (k in 1:length(X2_char)){
+  X_2<-c(X_2,as.numeric(X2_char[k]))
+}
+
+```
+
+#      I/ Test based on linear  measures of dependance
+#        1/ Test based on a finite-dimensional conditioning set 
+
+Supposons que nous observions des données brutes ${Y_t}_{t=1}^n $ alors $\hat{\gamma}_j$ est un estimateur consistant de $\gamma_j$: 
+
+$$ \hat{\gamma}_j = (n-j)^{-1} \sum_{t=1+j}^{n}(Y_t-\bar{Y})(Y_{t-j}-\bar{Y})$$ 
+$\bar{Y}$ est la moyenne de l'échantillon, on introduit aussi $\hat{\rho}_j$ le j eme ordre d'autocorrélation.
+
+$$ Q_p = n\sum_{j=1}^p \hat{\rho}_j^2~~~~~~~avec ~~~~~ \hat{\rho}_j=\frac{\hat{\gamma}_j}{\hat{\gamma}_0}$$
+
+```{r}
+Qp=0
+Y_barre= mean(Y)
+
+for (j in 1:p){
+  gamma_j=0
+  for (t in 1+j:n ){
+    gamma_j=gamma_j + (Y[t]-Y_barre)(Y[t-j]-Y_barre)
+  }
+  gamma_j=gamma_j/(n-j)
+  Qp=Qp+gamma_j**2
+}
+
+```
+
+Test statistique: 
+
+on definit le degrée $\alpha$ 
+l'hypothèse nulle est: $H_0 = \{Qp=0\}$ 
+l'hypothèse alternantive est: $ H_1 = \{ |Q_p| \geq q_{chisq}(1-\alpha/2) \}$
+
+
+```{r}
+for (alpha in c(0.1,0.05,0.01)){
+  quantile_Qp = qchisq(1-alpha/2,df=p)
+  p_value= 2*pnorm(-abs(quantile_Qp),df=p)
+  print(paste0(" alpha = ", alpha))
+  print(paste0(" Qp = ",zeta))
+  print(paste0(" Quantile = ",quantile))
+  print(paste0(" p-valeur = ",p_value))
+  print("  " )
+}
+
+
+
+```
+
+
+
+
+
+#        2/ Test based on a infinite-dimensional conditioning set 
+
