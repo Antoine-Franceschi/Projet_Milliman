@@ -161,7 +161,7 @@ Qpstar = function(Sample, p) {
       rho_j = gamma_j/gamma_0
       
       tau_j = sum((Sample[i,(1+j):d]-Y_barre)^2*(Sample[i,1:(d-j)])^2) /(gamma_0^2)
-      Qpstar_i = Qp_i + d*(rho_j^2)
+      Qpstar_i = Qpstar_i + d*(rho_j^2)
     }
     Qpstar = append(Qpstar, Qpstar_i)
   }
@@ -186,7 +186,7 @@ VRP= function(Sample, p) {
     
     for (j in 1:(p-1)){
       gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]))
-      rho_j = gamma_j/gamma_o
+      rho_j = gamma_j/gamma_0
       VRP_i = VRP_i + (1-(j/p))*rho_j
       }
     VRP = append(VRP, VRP_i)
