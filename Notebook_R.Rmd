@@ -29,31 +29,39 @@ $$ \gamma_j= Cov(Y_t,Y_{t-j})=𝔼[(𝑌_𝑡−𝜇)Y_{t-j}]=0~~~~~~~\forall j 
 
 ```{r}
 rm(list=ls()) # Removes all existing variables
+
 ```
+
+
 
 # parseur: 
 ```{r}
-Sample = read.table("name",sep=";",header=FALSE) # This command returns an object of the class data.frame
+Sample = read.table("Economic_Scenarios_1000_Simu.csv",sep=";",header=FALSE) # This command returns an object of the class data.frame
 tab_X_1 = as.matrix(Sample) # For our purpose it is better to convert it into a matrix
 n = dim(tab_X_1)[1] # Number of rows
 p = dim(tab_X_1)[2] # Number of columns
-X1_char = tab_X_1[2:n,p] 
+X1_char = tab_X_1[3:n,7:p] 
+n2=dim(X1_char)[1] # Number of rows
+p2=dim(X1_char)[2] # Number of columns
 
-Sample_2 = read.table("name2",sep=";",header=FALSE) # This command returns an object of the class data.frame
-tab_X_2 = as.matrix(Sample_2) # For our purpose it is better to convert it into a matrix
-number_of_rows = dim(tab_X_2)[1] # Number of rows
-number_of_columns = dim(tab_X_2)[2] # Number of columns
-X2_char = tab_X_2[2:number_of_rows,number_of_columns] 
+#pour la premiere simulation 
 
+VALN=c()
+INFLN=c()
+Equity= c()
+IMMO=c()
 
-X_1=c()
-for (k in 1:length(X1_char)){
-  X_1<-c(X_1,as.numeric(X1_char[k]))
+for (k in 1:p2){
+  VALN<-c(VALN,as.numeric(X1_char[1,k]))
+  INFLN<-c(INFLN,as.numeric(X1_char[2,k]))
+  Equity<-c(Equity,as.numeric(X1_char[3,k]))
+  IMMO<-c(IMMO,as.numeric(X1_char[4,k]))
 }
-X_2=c()
-for (k in 1:length(X2_char)){
-  X_2<-c(X_2,as.numeric(X2_char[k]))
-}
+
+#vérification 
+IMMO[1]
+IMMO[2]
+IMMO[3]
 
 ```
 
@@ -68,17 +76,20 @@ $\bar{Y}$ est la moyenne de l'échantillon, on introduit aussi $\hat{\rho}_j$ le
 $$ Q_p = n\sum_{j=1}^p \hat{\rho}_j^2~~~~~~~avec ~~~~~ \hat{\rho}_j=\frac{\hat{\gamma}_j}{\hat{\gamma}_0}$$
 
 ```{r}
+Y=IMMO
 Qp=0
 Y_barre= mean(Y)
-
+p=3
 for (j in 1:p){
   gamma_j=0
-  for (t in 1+j:n ){
-    gamma_j=gamma_j + (Y[t]-Y_barre)(Y[t-j]-Y_barre)
+  for (t in (1+j):length(Y) ){
+    
+    gamma_j=gamma_j + (Y[t]-Y_barre)*(Y[t-j]-Y_barre)
   }
   gamma_j=gamma_j/(n-j)
   Qp=Qp+gamma_j**2
 }
+Qp
 
 ```
 
@@ -86,16 +97,16 @@ Test statistique:
 
 on definit le degrée $\alpha$ 
 l'hypothèse nulle est: $H_0 = \{Qp=0\}$ 
-l'hypothèse alternantive est: $ H_1 = \{ |Q_p| \geq q_{chisq}(1-\alpha/2) \}$
+l'hypothèse alternantive est: $ H_1 = \{ |Q_p| \geq q_{chisq}(1-\alpha) \}$
 
 
 ```{r}
 for (alpha in c(0.1,0.05,0.01)){
-  quantile_Qp = qchisq(1-alpha/2,df=p)
-  p_value= 2*pnorm(-abs(quantile_Qp),df=p)
+  quantile_Qp = qchisq(1-alpha,df=p)
+  p_value= 2*pchisq(-abs(quantile_Qp),df=p)
   print(paste0(" alpha = ", alpha))
-  print(paste0(" Qp = ",zeta))
-  print(paste0(" Quantile = ",quantile))
+  print(paste0(" Qp = ",Qp))
+  print(paste0(" Quantile = ",quantile_Qp))
   print(paste0(" p-valeur = ",p_value))
   print("  " )
 }
