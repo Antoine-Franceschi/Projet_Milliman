@@ -75,8 +75,10 @@ $\bar{Y}$ est la moyenne de l'échantillon, on introduit aussi $\hat{\rho}_j$ le
 
 $$ Q_p = n\sum_{j=1}^p \hat{\rho}_j^2~~~~~~~avec ~~~~~ \hat{\rho}_j=\frac{\hat{\gamma}_j}{\hat{\gamma}_0}$$
 
+
+
 ```{r}
-Y=IMMO
+Y=IMMO*VALN
 Qp=0
 Y_barre= mean(Y)
 p=3
