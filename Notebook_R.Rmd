@@ -37,34 +37,27 @@ rm(list=ls()) # Removes all existing variables
 # parseur: 
 ```{r}
 Sample = read.table("Economic_Scenarios_1000_Simu.csv",sep=";",header=FALSE) # This command returns an object of the class data.frame
-tab_X_1 = as.matrix(Sample) # For our purpose it is better to convert it into a matrix
-n1 = dim(tab_X_1)[1] # Number of rows
-p1 = dim(tab_X_1)[2] # Number of columns
-X1_char = tab_X_1[3:n1,7:p1] 
-n=dim(X1_char)[1] # Number of rows
-p=dim(X1_char)[2] # Number of columns
+ # For our purpose it is better to convert it into a matrix
+n1 = dim(Sample)[1] # Number of rows
+p1 = dim(Sample)[2] # Number of columns
+
+X1_char = Sample[3:n1,7:p1] 
+tab_X_1 = as.matrix(X1_char)
+#n=dim(X1_char)[1] # Number of rows
+#p=dim(X1_char)[2] # Number of columns
+
 
 #pour la premiere simulation 
 
-VALN=c()
-INFLN=c()
-Equity= c()
-IMMO=c()
-
-for (k in 1:p){
-  VALN<-c(VALN,as.numeric(X1_char[1,k]))
-  INFLN<-c(INFLN,as.numeric(X1_char[2,k]))
-  Equity<-c(Equity,as.numeric(X1_char[3,k]))
-  IMMO<-c(IMMO,as.numeric(X1_char[4,k]))
+L=c()
+for (i in 1:(floor(n1/4))){
+  L=append(L,4*i)
 }
 
-#
-
-
-#vérification 
-IMMO[1]
-IMMO[2]
-IMMO[3]
+IMMO=tab_X_1[L,]
+EQUITY= tab_X_1[(L-1),]
+INFL=tab_X_1[L-2,]
+VALN=tab_X_1[L-3,]
 
 ```
 
@@ -90,54 +83,122 @@ $$ VR_p= 1+2\sum_{j=1}^{p-1}(1-\frac{j}{p})\hat{\rho}_j $$
 
 
 ```{r}
-Y=IMMO*VALN #on actualise les données 
+ #on actualise les données 
 
-Y_barre= mean(Y)
-p=3
+IMMO_act=IMMO*VALN
+EQUITY_act = EQUITY*VALN 
+INFL_act = INFL*VALN
+
+DtSt_IMMO=IMMO*VALN #on actualise les données 
+Dt_1St_1_IMMO=DtSt_IMMO[,1:(dim(DtSt_IMMO)[2]-1)]
+Y_IMMO=DtSt_IMMO[,2:dim(DtSt_IMMO)[2]]-Dt_1St_1_IMMO
+
+DtSt_EQUITY=EQUITY_act #on actualise les données 
+Dt_1St_1_EQUITY=DtSt_EQUITY[,1:(dim(DtSt_EQUITY)[2]-1)]
+Y_EQUITY=DtSt_EQUITY[,2:dim(DtSt_EQUITY)[2]]-Dt_1St_1_EQUITY
+
+
+DtSt_INFL=INFL*VALN #on actualise les données 
+Dt_1St_1_INFL=DtSt_INFL[,1:(dim(DtSt_INFL)[2]-1)]
+Y_INFL=DtSt_INFL[,2:dim(DtSt_INFL)[2]]-Dt_1St_1_INFL
+
+Y_barre= mean(Y_INFL[1,])
+mean((Y_INFL[1,(1+j):p]-Y_barre)*(Sample[1,1:(d-j)]))
+
+```
+
+```{r}
+mean((IMMO_act[1,] - mean(IMMO_act[1,]))^2)
+#print(IMMO_act[1,]-mean)
+```
+
+
+```{r}
+
 
 ########################### Calcul de QP #########################
-liste_rho_j_carre=c()
 
-#calcule de Gamma0 
-gamma_0=0
-for (t in 1:length(Y) ){
-  gamma_0=gamma_0 + (Y[t]-Y_barre)*(Y[t]-Y_barre)/n
-}
+Qp= function(Sample, p) {
+  n=dim(Sample)[1] #n =1000
+  d=dim(Sample)[2] # d = 50
 
-for (j in 1:p){
-  gamma_j=0
-  for (t in (1+j):length(Y) ){
-    gamma_j=gamma_j + (Y[t]-Y_barre)*(Y[t-j]-Y_barre)/(n-j)
+  Qp = c()
+  
+  for (i in 1:n) {
+    
+    Y_barre = mean(Sample[i,])
+    gamma_0 = mean((Sample[i,]-Y_barre)^2)
+    Qp_i = 0
+    
+    for (j in 1:p){
+      gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
+      rho_j = gamma_j/gamma_0
+      Qp_i = Qp_i + d*(rho_j^2)
+    }
+    Qp = append(Qp, Qp_i)
+    
   }
-  liste_rho_j_carre=c(liste_rho_j_carre,gamma_j**2/gamma_0**2)
+  return(Qp)
+
 }
 
-Qp=n*sum(liste_rho_j_carre)
-print(paste0(" Qp = ",Qp))
+#print(Qp(IMMO_act,3))
+
 
 ########################### Calcul de QP* #########################
-liste_inverse_de_tau_j=c()
 
-for (j in 1:p){
-  tau_j=0
-  for (t in (1+j):length(Y) ){
+Qpstar = function(Sample, p) {
+  n=dim(Sample)[1] #n =1000
+  d=dim(Sample)[2] # d = 50
+
+  Qpstar = c()
+  
+  for (i in 1:n) {
     
-    tau_j=tau_j + ((Y[t]-Y_barre)**2)*(Y[t-j]-Y_barre)**2/(n-j)
+    Y_barre = mean(Sample[i,])
+    gamma_0 = mean((Sample[i,]-Y_barre)^2)
+    Qpstar_i = 0
+    
+    for (j in 1:p){
+      gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
+      
+      rho_j = gamma_j/gamma_0
+      
+      tau_j = sum((Sample[i,(1+j):d]-Y_barre)^2*(Sample[i,1:(d-j)])^2) /(gamm_0^2)
+      Qpstar_i = Qp_i + d*(rho_j^2)
+    }
+    Qpstar = append(Qpstar, Qpstar_i)
   }
-  liste_inverse_de_tau_j=c(liste_inverse_de_tau_j,gamma_0**2/tau_j)
-}
+  return(Qpstar)
 
-Qp_etoile=n*sum(liste_inverse_de_tau_j*liste_rho_j_carre)
-print(paste0(" Qp* = ",Qp_etoile))
+}
 
 ########################### Calcul de VRp #########################
-coeff= c()
-for (j in 1:(p-1)){
-  coeff=c(coeff,1-j/p)
-}
-VRp=1+2*sum(coeff*sqrt(liste_rho_j_carre[1:p-1]))
-print(paste0(" VRp = ",VRp))
 
+
+VRP= function(Sample, p) {
+  n=dim(Sample)[1] #n =1000
+  d=dim(Sample)[2] # d = 50
+
+  VRP = c()
+  
+  for (i in 1:n) {
+    
+    gamma_0 = mean((Sample[i,]-Y_barre)^2)
+    
+    VRP_i = 1
+    
+    for (j in 1:(p-1)){
+      gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]))
+      VRP_i = VRP_i + (1-(j/p))*rho_j
+      }
+    VRP = append(VRP, VRP_i)
+    
+  }
+  return(VRP)
+
+}
+Qp(Y_IMMO,4)
 ```
 
 Test statistique: 
