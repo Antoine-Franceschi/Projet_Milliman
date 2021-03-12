@@ -38,11 +38,11 @@ rm(list=ls()) # Removes all existing variables
 ```{r}
 Sample = read.table("Economic_Scenarios_1000_Simu.csv",sep=";",header=FALSE) # This command returns an object of the class data.frame
 tab_X_1 = as.matrix(Sample) # For our purpose it is better to convert it into a matrix
-n = dim(tab_X_1)[1] # Number of rows
-p = dim(tab_X_1)[2] # Number of columns
-X1_char = tab_X_1[3:n,7:p] 
-n2=dim(X1_char)[1] # Number of rows
-p2=dim(X1_char)[2] # Number of columns
+n1 = dim(tab_X_1)[1] # Number of rows
+p1 = dim(tab_X_1)[2] # Number of columns
+X1_char = tab_X_1[3:n1,7:p1] 
+n=dim(X1_char)[1] # Number of rows
+p=dim(X1_char)[2] # Number of columns
 
 #pour la premiere simulation 
 
@@ -51,12 +51,15 @@ INFLN=c()
 Equity= c()
 IMMO=c()
 
-for (k in 1:p2){
+for (k in 1:p){
   VALN<-c(VALN,as.numeric(X1_char[1,k]))
   INFLN<-c(INFLN,as.numeric(X1_char[2,k]))
   Equity<-c(Equity,as.numeric(X1_char[3,k]))
   IMMO<-c(IMMO,as.numeric(X1_char[4,k]))
 }
+
+#
+
 
 #vérification 
 IMMO[1]
@@ -73,25 +76,67 @@ Supposons que nous observions des données brutes ${Y_t}_{t=1}^n $ alors $\hat{\
 $$ \hat{\gamma}_j = (n-j)^{-1} \sum_{t=1+j}^{n}(Y_t-\bar{Y})(Y_{t-j}-\bar{Y})$$ 
 $\bar{Y}$ est la moyenne de l'échantillon, on introduit aussi $\hat{\rho}_j$ le j eme ordre d'autocorrélation.
 
+
+Premier test: 
 $$ Q_p = n\sum_{j=1}^p \hat{\rho}_j^2~~~~~~~avec ~~~~~ \hat{\rho}_j=\frac{\hat{\gamma}_j}{\hat{\gamma}_0}$$
+Deuxieme test: 
+
+$$Q_p^* = n\sum_{j=1}^p \frac{\hat{\rho}_j^2}{\tau_j }$$
+$$avec ~~~~~ \tau_j= \frac{1}{\hat{\gamma}_0^2}\sum_{j=1}^n (Y_t-\bar{Y})^2(Y_{t-j}-\bar{Y})^2 $$ 
+Troisième test - Variance Ratio: 
+
+$$ VR_p= 1+2\sum_{j=1}^{p-1}(1-\frac{j}{p})\hat{\rho}_j $$
 
 
 
 ```{r}
-Y=IMMO*VALN
-Qp=0
+Y=IMMO*VALN #on actualise les données 
+
 Y_barre= mean(Y)
 p=3
+
+########################### Calcul de QP #########################
+liste_rho_j_carre=c()
+
+#calcule de Gamma0 
+gamma_0=0
+for (t in 1:length(Y) ){
+  gamma_0=gamma_0 + (Y[t]-Y_barre)*(Y[t]-Y_barre)/n
+}
+
 for (j in 1:p){
   gamma_j=0
   for (t in (1+j):length(Y) ){
-    
-    gamma_j=gamma_j + (Y[t]-Y_barre)*(Y[t-j]-Y_barre)
+    gamma_j=gamma_j + (Y[t]-Y_barre)*(Y[t-j]-Y_barre)/(n-j)
   }
-  gamma_j=gamma_j/(n-j)
-  Qp=Qp+gamma_j**2
+  liste_rho_j_carre=c(liste_rho_j_carre,gamma_j**2/gamma_0**2)
 }
-Qp
+
+Qp=n*sum(liste_rho_j_carre)
+print(paste0(" Qp = ",Qp))
+
+########################### Calcul de QP* #########################
+liste_inverse_de_tau_j=c()
+
+for (j in 1:p){
+  tau_j=0
+  for (t in (1+j):length(Y) ){
+    
+    tau_j=tau_j + ((Y[t]-Y_barre)**2)*(Y[t-j]-Y_barre)**2/(n-j)
+  }
+  liste_inverse_de_tau_j=c(liste_inverse_de_tau_j,gamma_0**2/tau_j)
+}
+
+Qp_etoile=n*sum(liste_inverse_de_tau_j*liste_rho_j_carre)
+print(paste0(" Qp* = ",Qp_etoile))
+
+########################### Calcul de VRp #########################
+coeff= c()
+for (j in 1:(p-1)){
+  coeff=c(coeff,1-j/p)
+}
+VRp=1+2*sum(coeff*sqrt(liste_rho_j_carre[1:p-1]))
+print(paste0(" VRp = ",VRp))
 
 ```
 
