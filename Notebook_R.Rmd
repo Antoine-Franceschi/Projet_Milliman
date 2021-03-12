@@ -103,7 +103,7 @@ l'hypothèse alternantive est: $ H_1 = \{ |Q_p| \geq q_{chisq}(1-\alpha) \}$
 ```{r}
 for (alpha in c(0.1,0.05,0.01)){
   quantile_Qp = qchisq(1-alpha,df=p)
-  p_value= 2*pchisq(-abs(quantile_Qp),df=p)
+  p_value= 1-pchisq(quantile_Qp,df=p)
   print(paste0(" alpha = ", alpha))
   print(paste0(" Qp = ",Qp))
   print(paste0(" Quantile = ",quantile_Qp))
