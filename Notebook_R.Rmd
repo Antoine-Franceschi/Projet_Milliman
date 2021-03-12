@@ -102,15 +102,11 @@ DtSt_INFL=INFL*VALN #on actualise les données
 Dt_1St_1_INFL=DtSt_INFL[,1:(dim(DtSt_INFL)[2]-1)]
 Y_INFL=DtSt_INFL[,2:dim(DtSt_INFL)[2]]-Dt_1St_1_INFL
 
-Y_barre= mean(Y_INFL[1,])
-mean((Y_INFL[1,(1+j):p]-Y_barre)*(Sample[1,1:(d-j)]))
 
 ```
 
 ```{r}
-mean((IMMO_act[1,] - mean(IMMO_act[1,]))^2)
-#print(IMMO_act[1,]-mean)
-```
+
 
 
 ```{r}
@@ -164,7 +160,7 @@ Qpstar = function(Sample, p) {
       
       rho_j = gamma_j/gamma_0
       
-      tau_j = sum((Sample[i,(1+j):d]-Y_barre)^2*(Sample[i,1:(d-j)])^2) /(gamm_0^2)
+      tau_j = sum((Sample[i,(1+j):d]-Y_barre)^2*(Sample[i,1:(d-j)])^2) /(gamma_0^2)
       Qpstar_i = Qp_i + d*(rho_j^2)
     }
     Qpstar = append(Qpstar, Qpstar_i)
@@ -190,6 +186,7 @@ VRP= function(Sample, p) {
     
     for (j in 1:(p-1)){
       gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]))
+      rho_j = gamma_j/gamma_o
       VRP_i = VRP_i + (1-(j/p))*rho_j
       }
     VRP = append(VRP, VRP_i)
