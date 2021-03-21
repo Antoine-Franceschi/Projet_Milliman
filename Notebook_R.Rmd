@@ -43,9 +43,6 @@ p1 = dim(Sample)[2] # Number of columns
 
 X1_char = Sample[3:n1,7:p1] 
 tab_X_1 = as.matrix(X1_char)
-#n=dim(X1_char)[1] # Number of rows
-#p=dim(X1_char)[2] # Number of columns
-
 
 #pour la premiere simulation 
 
@@ -71,14 +68,14 @@ $\bar{Y}$ est la moyenne de l'échantillon, on introduit aussi $\hat{\rho}_j$ le
 
 
 Premier test: 
-$$ Q_p = n\sum_{j=1}^p \hat{\rho}_j^2~~~~~~~avec ~~~~~ \hat{\rho}_j=\frac{\hat{\gamma}_j}{\hat{\gamma}_0}$$
+$$ \hat{Q_p} = n\sum_{j=1}^p \hat{\rho}_j^2~~~~~~~avec ~~~~~ \hat{\rho}_j=\frac{\hat{\gamma}_j}{\hat{\gamma}_0}$$
 Deuxieme test: 
 
-$$Q_p^* = n\sum_{j=1}^p \frac{\hat{\rho}_j^2}{\tau_j }$$
+$$\hat{Q_p^*} = n\sum_{j=1}^p \frac{\hat{\rho}_j^2}{\tau_j }$$
 $$avec ~~~~~ \tau_j= \frac{1}{\hat{\gamma}_0^2}\sum_{j=1}^n (Y_t-\bar{Y})^2(Y_{t-j}-\bar{Y})^2 $$ 
 Troisième test - Variance Ratio: 
 
-$$ VR_p= 1+2\sum_{j=1}^{p-1}(1-\frac{j}{p})\hat{\rho}_j $$
+$$ \hat{VR_p}= 1+2\sum_{j=1}^{p-1}(1-\frac{j}{p})\hat{\rho}_j $$
 
 
 
@@ -110,6 +107,11 @@ mean((Y_INFL[1,(1+j):p]-Y_barre)*(Sample[1,1:(d-j)]))
 ```{r}
 mean((IMMO_act[1,] - mean(IMMO_act[1,]))^2)
 #print(IMMO_act[1,]-mean)
+eyucvyu=Y_IMMO[1,1:3]
+
+Y12 = Y_IMMO[,1:7]
+
+
 ```
 
 
@@ -183,14 +185,14 @@ VRP= function(Sample, p) {
   VRP = c()
   
   for (i in 1:n) {
-    
+    Y_barre = mean(Sample[i,])
     gamma_0 = mean((Sample[i,]-Y_barre)^2)
     
     VRP_i = 1
     
     for (j in 1:(p-1)){
       gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]))
-      VRP_i = VRP_i + (1-(j/p))*rho_j
+      VRP_i = VRP_i + (1-(j/p))*gamma_j/gamma_0
       }
     VRP = append(VRP, VRP_i)
     
@@ -198,7 +200,11 @@ VRP= function(Sample, p) {
   return(VRP)
 
 }
-Qp(Y_IMMO,4)
+
+
+
+
+
 ```
 
 Test statistique: 
@@ -209,20 +215,74 @@ l'hypothèse alternantive est: $ H_1 = \{ |Q_p| \geq q_{chisq}(1-\alpha) \}$
 
 
 ```{r}
-for (alpha in c(0.1,0.05,0.01)){
-  quantile_Qp = qchisq(1-alpha,df=p)
-  p_value= 1-pchisq(quantile_Qp,df=p)
-  print(paste0(" alpha = ", alpha))
-  print(paste0(" Qp = ",Qp))
-  print(paste0(" Quantile = ",quantile_Qp))
-  print(paste0(" p-valeur = ",p_value))
-  print("  " )
+
+Graph = function(Sample,p){
+  Qp = Qp(Sample,p)
+  Y=c()
+  for(t in 1:length(Qp)){
+    p_value= 1-pchisq(Qp[t],df=p)
+    Y=append(Y,p_value)
+  }
+  #X=c(1:length(Qp))
+  
+  #plot(X,Y)
+  #abline(h=min(Y), col="blue")
+  #abline(h=max(Y), col="blue")
+  #abline(h=mean(Y), col="red")
+  hist(Y,breaks=20,col="red",density=5,xlab="p-valeur",ylab="répartition",main=" Répartition des p_valeurs ",tck=0.01)
+    # breaks : nombre de barres
+    # density : barres vides (0) ou hachurées
+    # tck = 0.01 : longueur des graduations
+    # xlab & ylab : titre de l'axe des abscisses et ordonnées
+    # main : titre de l'histogramme
+    # col : couleur des barres - pour mettre d'autres couleurs
+    # Le paramètre freq = FALSE ou freq = F permet d'afficher la fréquence que représente chaque catégorie.
+  box() # encadre l'histogramme
+  #densite <- density(Y) # estimer la densité que représente ces différentes valeurs
+  #lines(densite, col = "blue",lwd=2) # Superposer une ligne de densité à l'histogramme
+  
+  print(paste0(" min(p_valeur)  = ", min(Y)))
+  print(paste0(" max(p_valeur) = ",max(Y)))
+  print(paste0(" mean(p_valeur) ",mean(Y)))
+  print( "--------------")
+  for(alpha in c(0.1,0.05,0.01)){
+    
+    print(paste0(" alpha = ",alpha))
+    print(paste0(" On rejette l'hypothèse nulle ,",length(Y[Y<=alpha])))
+    print( "--------------")   
+  }
+  
+  
 }
+Graph(Y_IMMO,4)
 
 
 
 ```
+On va essayer de construire les intervalles de confiances à 95% pour les differents tests: 
+Pour le test numero 1 et 2 on passe par la methode du delta: 
 
+
+Pour le test numero 3 on connait deja un intervalle de confiance à 95% sous hypothèse nulle : 
+$$ I_3=\mathopen{[} VR_p - \phi_{1-\alpha/2}\sqrt{\frac{2*(p-1)}{p*n}},VR_p + \phi_{1-\alpha/2}\sqrt{\frac{2*(p-1)}{p*n}} \mathopen{]} $$
+comme $\sqrt{n}*(VR_p-1)\longrightarrow \mathcal{N}(0,\frac{2*(p-1)}{p}) $ on a alors: 
+
+$$I_3= \mathopen{[} 1 - \phi_{1-\alpha/2}\sqrt{\frac{2*(p-1)}{p*n}},1 + \phi_{1-\alpha/2}\sqrt{\frac{2*(p-1)}{p*n}} \mathopen{]} $$ 
+```{r}
+
+p=4
+VR_P=VRP(Y_EQUITY,p)
+X=c(1:length(VR_P))
+print(paste0(" alpha = ",0.05))
+a= 1-qnorm(0.975,mean=0,sd = 1)*sqrt(2*(p-1)/(p*length(VR_P)))
+b= 1+qnorm(0.975,mean=0,sd = 1)*sqrt(2*(p-1)/(p*length(VR_P)))
+#plot(X,VR_P)
+hist(VR_P,breaks=20,col="red",density=6,xlab="Valeur de VR_P ",ylab="répartition",main=" Répartition des valeurs ",tck=0.02)
+abline(v=a,col="blue")
+abline(v=b,col="blue")
+box()
+
+```
 
 
 
