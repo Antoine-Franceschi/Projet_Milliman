@@ -105,16 +105,9 @@ Y_INFL=DtSt_INFL[,2:dim(DtSt_INFL)[2]]-Dt_1St_1_INFL
 ```{r}
 
 mean((IMMO_act[1,] - mean(IMMO_act[1,]))^2)
-#print(IMMO_act[1,]-mean)
-eyucvyu=Y_IMMO[1,1:3]
-
-Y12 = Y_IMMO[,1:7]
-
 
 ```
-=======
 
->>>>>>> a3968edbde993e83aedcc54f6a90fc137ce94ddb
 
 
 ```{r}
