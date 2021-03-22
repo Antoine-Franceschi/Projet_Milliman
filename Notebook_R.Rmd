@@ -214,7 +214,7 @@ l'hypothèse alternantive est: $ H_1 = \{ |Q_p| \geq q_{chisq}(1-\alpha) \}$
 ```{r}
 
 Graph = function(Sample,p){
-  Qp = Qp(Sample,p)
+  Qp = Qpstar(Sample,p)
   Y=c()
   for(t in 1:length(Qp)){
     p_value= 1-pchisq(Qp[t],df=p)
@@ -226,7 +226,7 @@ Graph = function(Sample,p){
   #abline(h=min(Y), col="blue")
   #abline(h=max(Y), col="blue")
   #abline(h=mean(Y), col="red")
-  hist(Y,breaks=20,col="red",density=5,xlab="p-valeur",ylab="répartition",main=" Répartition des p_valeurs ",tck=0.01)
+  hist(Y,breaks=20,col="red",density=5,xlab="p-valeur",ylab="répartition",main=" Répartition des p_valeurs ",tck=0.01, freq = FALSE)
     # breaks : nombre de barres
     # density : barres vides (0) ou hachurées
     # tck = 0.01 : longueur des graduations
@@ -235,8 +235,8 @@ Graph = function(Sample,p){
     # col : couleur des barres - pour mettre d'autres couleurs
     # Le paramètre freq = FALSE ou freq = F permet d'afficher la fréquence que représente chaque catégorie.
   box() # encadre l'histogramme
-  #densite <- density(Y) # estimer la densité que représente ces différentes valeurs
-  #lines(densite, col = "blue",lwd=2) # Superposer une ligne de densité à l'histogramme
+  densite <- density(Y) # estimer la densité que représente ces différentes valeurs
+  lines(densite, col = "blue",lwd=2) # Superposer une ligne de densité à l'histogramme
   
   print(paste0(" min(p_valeur)  = ", min(Y)))
   print(paste0(" max(p_valeur) = ",max(Y)))
@@ -251,7 +251,7 @@ Graph = function(Sample,p){
   
   
 }
-Graph(Y_IMMO,4)
+Graph(Y_IMMO,2)
 
 
 
@@ -268,7 +268,7 @@ $$I_3= \mathopen{[} 1 - \phi_{1-\alpha/2}\sqrt{\frac{2*(p-1)}{p*n}},1 + \phi_{1-
 ```{r}
 
 p=4
-VR_P=VRP(Y_EQUITY,p)
+VR_P=VRP(Y_IMMO,p)
 X=c(1:length(VR_P))
 print(paste0(" alpha = ",0.05))
 a= 1-qnorm(0.975,mean=0,sd = 1)*sqrt(2*(p-1)/(p*length(VR_P)))
@@ -277,7 +277,25 @@ b= 1+qnorm(0.975,mean=0,sd = 1)*sqrt(2*(p-1)/(p*length(VR_P)))
 hist(VR_P,breaks=20,col="red",density=6,xlab="Valeur de VR_P ",ylab="répartition",main=" Répartition des valeurs ",tck=0.02)
 abline(v=a,col="blue")
 abline(v=b,col="blue")
+abline(v=mean(VR_P),col="green")
 box()
+mean(VR_P)
+
+```
+
+
+#        1.bis / Calcul de la puissance 
+
+Premier test pour controler la martingalité: 
+
+$$ \frac{1}{N}*\sum_{i=1}^{N} D_t^i*S_t^i \longrightarrow S(0)  $$
+
+On sait qu'on a: 
+
+
+```{r}
+
+
 
 ```
 
