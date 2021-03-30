@@ -292,6 +292,100 @@ $$ \frac{1}{N}*\sum_{i=1}^{N} D_t^i*S_t^i \longrightarrow S(0)  $$
 
 On sait qu'on a: 
 
+On s'intérresse à une classe de processus qui s'ecrit: 
+
+$$ X_{t+1} = \theta X_t + \epsilon_t ~~~~où ~~~~ X_0 = \frac{c}{1-\theta} ~~~ et~~~~ \epsilon_t~~ \longrightarrow ~~\mathcal{N}(c,\sigma^2)~~~~et~~~\theta \in [0,1[$$
+Par recurrence on montre que: 
+$$ X_t=\theta^tX_{0}+\sum_{k=0}^{t-1}\theta^k\varepsilon_{t-k} $$ 
+
+on a :
+$$ \operatorname{E}[X_t]=\theta^t X_0 + c\sum_{i=0}^{t-1}\theta^i $$ 
+$$ \operatorname{Var}[X_t]= \sum_{i=0}^{t}\theta^{2i}\sigma^2 $$ 
+$$\operatorname{Cov}[X_t,X_{t-j}]= \theta^{j}\sum_{i=0}^{t-j}\theta^{2i}\sigma^2 $$ 
+
+donc on obtient: 
+
+$$ \rho_j = \operatorname{Corr}[X_t,X_{t-j}]\equiv \frac{\operatorname{Cov}[X_t,X_{t-j}]}{\sqrt{\operatorname{Var}(X_t)\operatorname{Var}(X_{t-j})}}=\theta^j \sqrt{\frac{1 - \theta^{2(t-j) + 2}}{1 - \theta^{2t + 2}}} $$ 
+le test portemanteau $Q_p$ s'intéresse seulement aux $\rho_j$ pour $j\in [0,4]$. Comme $ \theta \in [0,1[$, si on prend $t$ assez grand (50) on obtient que : 
+
+$$ \rho_j =\operatorname{Corr}[X_t,X_{t-j}]= \theta^j$$
+#Génaration de ces processus pour différents \theta
+```{r}
+n=1000 #nombre de simulations
+t_max=50
+c=100
+sigma = 5
+p=4
+
+simultheta = function(theta, t_max) {
+  simul = c(c/(1-theta))
+  bruit = rnorm(t_max, c, sigma^2)
+  for (i in (1:t_max)) {
+    X_i = theta*simul[i-1] + bruit[i]
+    simul = append(simul, X_i)
+  }
+  return(t(matrix(simul)))
+}
+N_simul = function(theta, t_max, N){
+  mat = matrix(0, ncol=t_max, nrow=N)
+  for (i in 1:N){
+    mat[i,] = simultheta(theta, t_max)
+  }
+  return(mat)
+}
+
+sums = function(Sample, theta, t_max){
+  n = (dim(Sample))[1]
+  for (i in 1:n){
+    Sample[i,]= cumsum(Sample[i,])
+  }
+  sum = matrix(0, ncol=1, nrow = t_max)
+  a = c/(1-theta)
+  b=0
+  for (j in (1:t_max)){
+    sum[j] = (mean(Sample[,j])-a)/sqrt(b)
+    a = theta*a + c
+    b= b+ sigma^2
+  }
+  sum[1]=0
+  return(sum)
+}
+
+
+
+ 
+```
+
+
+```{r}
+
+graph_power = function(n){
+  theta = seq(from = 0, to = 1, by = 0.01)
+  pwr1 = c()
+  pwr2 = c()
+  for (thet in theta) {
+    simul = N_simul(thet, t_max, n)
+    Qps = Qp(simul, p)
+    sum = abs((sums(simul, thet, t_max)))
+    occ1 = length(Qps[Qps>qchisq(0.95,p)])/n
+    occ2 = length(sum[sum>qnorm(0.975)])/n
+    pwr1 = append(pwr1, occ1)
+    pwr2 = append(pwr2, occ2)
+    
+  }
+  plot(theta, pwr1, col="red")
+  plot(theta, pwr2)
+  #abline(h=min(pwr), col="green")
+  #print(min(pwr))
+}
+
+```
+
+
+
+```{r}
+graph_power(1000)
+```
 
 ```{r}
 
