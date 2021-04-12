@@ -299,16 +299,16 @@ Par recurrence on montre que:
 $$ Y_t=\theta^tY_{0}+\sum_{k=0}^{t-1}\theta^k\varepsilon_{t-k} $$ 
 
 on a :
-$$ \operatorname{E}[X_t]=\theta^t X_0 + c\sum_{i=0}^{t-1}\theta^i $$ 
-$$ \operatorname{Var}[X_t]= \sum_{i=0}^{t}\theta^{2i}\sigma^2 $$ 
-$$\operatorname{Cov}[X_t,X_{t-j}]= \theta^{j}\sum_{i=0}^{t-j}\theta^{2i}\sigma^2 $$ 
+$$ \operatorname{E}[Y_t]=\theta^t Y_0 + c\sum_{i=0}^{t-1}\theta^i $$ 
+$$ \operatorname{Var}[Y_t]= \sum_{i=0}^{t}\theta^{2i}\sigma^2 $$ 
+$$\operatorname{Cov}[Y_t,Y_{t-j}]= \theta^{j}\sum_{i=0}^{t-j}\theta^{2i}\sigma^2 $$ 
 
 donc on obtient: 
 
-$$ \rho_j = \operatorname{Corr}[X_t,X_{t-j}]\equiv \frac{\operatorname{Cov}[X_t,X_{t-j}]}{\sqrt{\operatorname{Var}(X_t)\operatorname{Var}(X_{t-j})}}=\theta^j \sqrt{\frac{1 - \theta^{2(t-j) + 2}}{1 - \theta^{2t + 2}}} $$ 
+$$ \rho_j = \operatorname{Corr}[Y_t,Y_{t-j}]\equiv \frac{\operatorname{Cov}[Y_t,Y_{t-j}]}{\sqrt{\operatorname{Var}(Y_t)\operatorname{Var}(Y_{t-j})}}=\theta^j \sqrt{\frac{1 - \theta^{2(t-j) + 2}}{1 - \theta^{2t + 2}}} $$ 
 le test portemanteau $Q_p$ s'intéresse seulement aux $\rho_j$ pour $j\in [0,4]$. Comme $ \theta \in [0,1[$, si on prend $t$ assez grand (50) on obtient que : 
 
-$$ \rho_j =\operatorname{Corr}[X_t,X_{t-j}]= \theta^j$$
+$$ \rho_j =\operatorname{Corr}[Y_t,Y_{t-j}]= \theta^j$$
 
 
 #  Génaration de ces processus pour différents \theta
