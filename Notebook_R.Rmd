@@ -294,9 +294,9 @@ On sait qu'on a:
 
 On s'intérresse à une classe de processus qui s'ecrit: 
 
-$$ X_{t+1} = \theta X_t + \epsilon_t ~~~~où ~~~~ X_0 = \frac{c}{1-\theta} ~~~ et~~~~ \epsilon_t~~ \longrightarrow ~~\mathcal{N}(c,\sigma^2)~~~~et~~~\theta \in [0,1[$$
+$$ Y_{t+1} = \theta Y_t + \epsilon_t ~~~~où ~~~~ Y_0 = \frac{c}{1-\theta} ~~~ et~~~~ \epsilon_t~~ \longrightarrow ~~\mathcal{N}(c,\sigma^2)~~~~et~~~\theta \in [0,1[$$
 Par recurrence on montre que: 
-$$ X_t=\theta^tX_{0}+\sum_{k=0}^{t-1}\theta^k\varepsilon_{t-k} $$ 
+$$ Y_t=\theta^tY_{0}+\sum_{k=0}^{t-1}\theta^k\varepsilon_{t-k} $$ 
 
 on a :
 $$ \operatorname{E}[X_t]=\theta^t X_0 + c\sum_{i=0}^{t-1}\theta^i $$ 
@@ -309,7 +309,13 @@ $$ \rho_j = \operatorname{Corr}[X_t,X_{t-j}]\equiv \frac{\operatorname{Cov}[X_t,
 le test portemanteau $Q_p$ s'intéresse seulement aux $\rho_j$ pour $j\in [0,4]$. Comme $ \theta \in [0,1[$, si on prend $t$ assez grand (50) on obtient que : 
 
 $$ \rho_j =\operatorname{Corr}[X_t,X_{t-j}]= \theta^j$$
-#Génaration de ces processus pour différents \theta
+
+
+#  Génaration de ces processus pour différents \theta
+
+
+
+
 ```{r}
 n=1000 #nombre de simulations
 t_max=50
@@ -334,24 +340,30 @@ N_simul = function(theta, t_max, N){
   return(mat)
 }
 
+
+var_cov = function(t,theta,sigma,bk){
+  var = sum(bk)+ 2*( (1-theta^t)/(1-theta) -t ) * sigma^2/((1-theta^(-1))*(1-theta)) - 2*(theta*sigma)^2* ( (1-theta^t)/(1-theta) -  (1-theta^(2*t))/(1-theta^2) )/(1-theta)^2
+  return(var)
+}
+
+
 sums = function(Sample, theta, t_max){
   n = (dim(Sample))[1]
   for (i in 1:n){
-    Sample[i,]= cumsum(Sample[i,])
+   Sample[i,]= cumsum(Sample[i,])
   }
   sum = matrix(0, ncol=1, nrow = t_max)
-  a = c/(1-theta)
-  b=0
+  ak= c(c/(1-theta))
+  bk= c(sigma**2)
   for (j in (1:t_max)){
-    sum[j] = (mean(Sample[,j])-a)/sqrt(b)
-    a = theta*a + c
-    b= b+ sigma^2
+    sum[j] = mean(Sample[,j])*sqrt(n/var_cov(j,theta,sigma,bk))
+    
+    ak = c(ak,theta*ak[length(ak)] + c)
+    bk = c(bk,theta**2 * bk[length(bk)]+ sigma^2)
   }
   sum[1]=0
   return(sum)
 }
-
-
 
  
 ```
@@ -360,13 +372,15 @@ sums = function(Sample, theta, t_max){
 ```{r}
 
 graph_power = function(n){
-  theta = seq(from = 0, to = 1, by = 0.01)
+  theta = seq(from = 0.01, to = 1, by = 0.01)
   pwr1 = c()
   pwr2 = c()
   for (thet in theta) {
     simul = N_simul(thet, t_max, n)
     Qps = Qp(simul, p)
-    sum = abs((sums(simul, thet, t_max)))
+    
+    sum = abs(sums(simul, thet, t_max))
+    print(sum)
     occ1 = length(Qps[Qps>qchisq(0.95,p)])/n
     occ2 = length(sum[sum>qnorm(0.975)])/n
     pwr1 = append(pwr1, occ1)
@@ -375,12 +389,16 @@ graph_power = function(n){
   }
   plot(theta, pwr1, col="red")
   plot(theta, pwr2)
-  #abline(h=min(pwr), col="green")
-  #print(min(pwr))
+  abline(h=min(pwr), col="green")
+  print(min(pwr))
 }
 
 ```
 
+```{r}
+L=c(1,2,3)
+L[length(L)]
+```
 
 
 ```{r}
@@ -395,28 +413,81 @@ Qpcol= function(Sample, p) {
   n=dim(Sample)[1] #n =1000
   d=dim(Sample)[2] # d = 50
 
-  t = d #valeur de t
+ #valeur de t
   Qp = c()
-  Y_barre_t = mean(Sample[,t])
-  gamma_0 = mean((Sample[,t]-Y_barre_t)^2)
-  Qp_j = 0
-  for (j in 1:p) {
+  
+  
+  for (t in (p+1):(d)){
+    Qp_t = 0
+    Y_barre_t = mean(Sample[,t])
+    gamma_0 = mean((Sample[,t]-Y_barre_t)^2)
+    for (j in 1:p) {
     
-    
-    Y_barre_tmoinsj = mean(Sample[,d-j])
-    
-    gamma_j = mean((Sample[,t]-Y_barre_t)*(Sample[,(t-j)]-Y_barre_tmoinsj))
-    rho_j = gamma_j/gamma_0
-    Qp_j = Qp_j + n*(rho_j^2)
-    
-    Qp = append(Qp, Qp_j)
-    
+      Y_barre_tmoinsj = mean(Sample[,t-j])
+      
+      gamma_j = mean((Sample[,t]-Y_barre_t)*(Sample[,(t-j)]-Y_barre_tmoinsj))
+      
+      rho_j = gamma_j/gamma_0
+      
+      #print(rho_j^2)  
+      Qp_t = Qp_t + n*(rho_j^2)
+    }
+    Qp = append(Qp, Qp_t)
   }
   return(Qp)
 
 }
+```
+
+```{r}
+
+Graph = function(Sample,p){
+  Qp = Qpcol(Sample,p)
+  print(Qp)
+  Y=c()
+  for(t in 1:length(Qp)){
+    p_value= 1-pchisq(Qp[t],df=p)
+    Y=append(Y,p_value)
+  }
+  #X=c(1:length(Qp))
+  
+  #plot(X,Y)
+  #abline(h=min(Y), col="blue")
+  #abline(h=max(Y), col="blue")
+  #abline(h=mean(Y), col="red")
+  hist(Y,breaks=20,col="red",density=5,xlab="p-valeur",ylab="répartition",main=" Répartition des p_valeurs ",tck=0.01)
+    # breaks : nombre de barres
+    # density : barres vides (0) ou hachurées
+    # tck = 0.01 : longueur des graduations
+    # xlab & ylab : titre de l'axe des abscisses et ordonnées
+    # main : titre de l'histogramme
+    # col : couleur des barres - pour mettre d'autres couleurs
+    # Le paramètre freq = FALSE ou freq = F permet d'afficher la fréquence que représente chaque catégorie.
+  box() # encadre l'histogramme
+  #densite <- density(Y) # estimer la densité que représente ces différentes valeurs
+  #lines(densite, col = "blue",lwd=2) # Superposer une ligne de densité à l'histogramme
+  
+  print(paste0(" min(p_valeur)  = ", min(Y)))
+  print(paste0(" max(p_valeur) = ",max(Y)))
+  print(paste0(" mean(p_valeur) ",mean(Y)))
+  print( "--------------")
+  for(alpha in c(0.1,0.05,0.01)){
+    
+    print(paste0(" alpha = ",alpha))
+    print(paste0(" On rejette l'hypothèse nulle ,",length(Y[Y<=alpha])))
+    print( "--------------")   
+  }
+  
+  
+}
+Graph(Y_IMMO,4)
 
 ```
+
+```{r}
+2**2
+```
+
 
 
 
