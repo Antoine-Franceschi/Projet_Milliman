@@ -389,7 +389,32 @@ graph_power(1000)
 
 ```{r}
 
+########################### Calcul de QP sur les colonnes #########################
 
+Qpcol= function(Sample, p) {
+  n=dim(Sample)[1] #n =1000
+  d=dim(Sample)[2] # d = 50
+
+  t = d #valeur de t
+  Qp = c()
+  Y_barre_t = mean(Sample[,t])
+  gamma_0 = mean((Sample[,t]-Y_barre_t)^2)
+  Qp_j = 0
+  for (j in 1:p) {
+    
+    
+    Y_barre_tmoinsj = mean(Sample[,d-j])
+    
+    gamma_j = mean((Sample[,t]-Y_barre_t)*(Sample[,(t-j)]-Y_barre_tmoinsj))
+    rho_j = gamma_j/gamma_0
+    Qp_j = Qp_j + n*(rho_j^2)
+    
+    Qp = append(Qp, Qp_j)
+    
+  }
+  return(Qp)
+
+}
 
 ```
 
@@ -397,4 +422,50 @@ graph_power(1000)
 
 
 #        2/ Test based on a infinite-dimensional conditioning set 
+
+La limite du test précédent est qu'on ne considère seulement un nombre fini d'autocorrélations. On va donc utiliser la densité spectrale (qui contient toutes les covariances).
+
+On définit la densité spectrale $f(\lambda)$ par
+
+$$ \gamma_k = \int_{\Pi}^{}f(\lambda)exp(ik\lambda)d\lambda  \\
+k = 0,1,2,... \\
+\Pi = [-\pi, \pi]$$
+
+On définit également le périodigramme par 
+
+$$ I(\lambda) = \lvert w(\lambda) \rvert ^2 \\
+\text{où } w(\lambda) = n^{-1/2} \sum_{t=1}^{n} x_t exp(it\lambda)$$
+
+L'intégrale de la densité spectrale est linéaire en $\lambda$ sous l'hypothèse de MDH.
+
+On a alors l'hypothèse nulle
+
+$$ H_0 = \{\gamma_k = 0,  \forall k \}$$
+
+Ce qui est équivalent à
+
+$$ f(\lambda) = \{f(\lambda) = \frac{\gamma_0}{2\pi},  \forall \lambda \in \Pi \}$$
+
+On introduit donc le périodigramme cumulatif standardisé
+
+$$ Z_n(\lambda) = \sqrt{T} ( \frac{\sum_{j=1}^{[\lambda T  \pi]} I(\lambda_j)}{\sum_{j=1}^{T} I(\lambda_j)} - \frac{\lambda}{\pi} ) \\
+\text{où } \lambda_j = \frac{2\pi j}{n} \\
+j = 1,2,..., n/2$$
+
+A partir de $Z_n$, on peut en déduire le test de Kolmogorov Smirnov
+
+$$ \max_{j=1,...,T} \lvert Z_n(\lambda_j) \rvert$$
+Et le test de Cramer von Mises
+
+$$ \frac{1}{T} \sum_{j=1}^{T} Z_n(\lambda_j ^2)$$
+
+On introduit la statistique de Deo (qui peut être vue comme une version continue de la statistique $Q_p^*$). Elle s'écrit
+
+$$DEO_n = \sum_{j=1}^{n-1}n \frac{\hat{\rho}_j^2}{\tau_j}(\frac{1}{j \pi})^2$$
+
+
+
+
+
+
 
