@@ -25,7 +25,7 @@ En particulier, on note que toutes les autocorrélations (lag >0) de $𝑌_𝑡$
 Rappelez-vous la définition de mds dans l'équation (2) qui devrait tenir pour toute fonction w(). L'approche la plus simple consiste à considérer les fonctions linéaires w() ; telles que $ w(I_{t-1})= Y_{t-j}$ pour tout $j \geq 1$
 Par conséquent, une condition nécessaire (mais pas suffisante, en général) pour que la MDH tienne est que les séries ne soient pas corrélées, c'est-à-dire
 
-$$ \gamma_j= Cov(Y_t,Y_{t-j})=𝔼[(𝑌_𝑡−𝜇)Y_{t-j}]=0~~~~~~~\forall j \geq1 $$
+$$ \gamma_j= Cov(Y_t,Y_{t-j})=𝔼[(𝑌_𝑡−𝜇)(Y_{t-j}-𝜇)]=0~~~~~~~\forall j \geq1 $$
 
 ```{r}
 rm(list=ls()) # Removes all existing variables
@@ -124,11 +124,13 @@ Qp= function(Sample, p) {
   for (i in 1:n) {
     
     Y_barre = mean(Sample[i,])
-    gamma_0 = mean((Sample[i,]-Y_barre)^2)
+    #gamma_0 = mean((Sample[i,]-Y_barre)^2)
+    gamma_0 = mean((Sample[i,])^2)
     Qp_i = 0
     
     for (j in 1:p){
-      gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
+      #gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
+      gamma_j = mean((Sample[i,(1+j):d])*(Sample[i,1:(d-j)]))
       rho_j = gamma_j/gamma_0
       Qp_i = Qp_i + d*(rho_j^2)
     }
@@ -172,7 +174,6 @@ Qpstar = function(Sample, p) {
 
 ########################### Calcul de VRp #########################
 
-
 VRP= function(Sample, p) {
   n=dim(Sample)[1] #n =1000
   d=dim(Sample)[2] # d = 50
@@ -183,12 +184,11 @@ VRP= function(Sample, p) {
     Y_barre = mean(Sample[i,])
     gamma_0 = mean((Sample[i,]-Y_barre)^2)
     
-    VRP_i = 1
     
     for (j in 1:(p-1)){
-      gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]))
+      gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
       rho_j = gamma_j/gamma_0
-      VRP_i = VRP_i + (1-(j/p))*rho_j
+      VRP_i = 1 + 2*(1-(j/p))*rho_j
 
       }
     VRP = append(VRP, VRP_i)
@@ -197,6 +197,7 @@ VRP= function(Sample, p) {
   return(VRP)
 
 }
+
 
 
 
@@ -290,6 +291,7 @@ Premier test pour controler la martingalité:
 
 $$ \frac{1}{N}*\sum_{i=1}^{N} D_t^i*S_t^i \longrightarrow S(0)  $$
 
+$$ Y_t= X_{t+1}-X_t~~avec ~~~X_t=D_t*S_t $$ 
 On sait qu'on a: 
 
 On s'intérresse à une classe de processus qui s'ecrit: 
@@ -319,7 +321,7 @@ $$ \rho_j =\operatorname{Corr}[Y_t,Y_{t-j}]= \theta^j$$
 ```{r}
 n=1000 #nombre de simulations
 t_max=50
-c=100
+c=0
 sigma = 5
 p=4
 
@@ -353,13 +355,13 @@ sums = function(Sample, theta, t_max){
    Sample[i,]= cumsum(Sample[i,])
   }
   sum = matrix(0, ncol=1, nrow = t_max)
-  ak= c(c/(1-theta))
+  ak= c(0)
   bk= c(sigma**2)
   for (j in (1:t_max)){
-    sum[j] = mean(Sample[,j])*sqrt(n/var_cov(j,theta,sigma,bk))
+    sum[j] = mean(Sample[,j])*sqrt(n/j)/sigma 
+    #sqrt(n/var_cov(j,theta,sigma,bk))
     
-    ak = c(ak,theta*ak[length(ak)] + c)
-    bk = c(bk,theta**2 * bk[length(bk)]+ sigma^2)
+    
   }
   sum[1]=0
   return(sum)
@@ -403,6 +405,90 @@ L[length(L)]
 
 ```{r}
 graph_power(1000)
+```
+```{r}
+list = matrix(c(0.5,0.5,0.5))
+print(sum(list^2))
+n=1000 #nombre de simulations
+t_max=50
+c=0
+sigma = 1
+p=4
+k = length(list)
+sigma^2/(1-sum(list^2))
+simul = c(rnorm(k, mean = 0, sd = sigma^2/(1-sum(list^2))))
+simul
+bruit = rnorm(t_max, c, sigma^2)
+list*simul[(1):(k)]
+
+x_i = sum(list*simul[(1):(k)]) + bruit[k+1]
+simul = append(simul, x_i)
+
+length(simultheta2(list, 50))
+```
+
+
+```{r}
+n=1000 #nombre de simulations
+t_max=50
+c=0
+sigma = 1
+p=4
+#k=4
+
+simultheta2 = function(list , t_max) {
+  k = dim(list)[1]
+  simul = c(rnorm(k, mean = 0, sd = sqrt(sigma^2/(1-sum(list^2)))))
+  bruit = rnorm(t_max, c, sigma^2)
+  for (i in ((k+1):t_max)) {
+    #print(k)
+    X_i = sum(list*simul[(i-k):(i-1)]) + bruit[i]
+    simul = append(simul, X_i)
+  }
+  return(t(matrix(simul)))
+}
+N_simul = function(list, t_max, N){
+  mat = matrix(0, ncol=t_max, nrow=N)
+  for (i in 1:N){
+    mat[i,] = simultheta2(list, t_max)
+  }
+  return(mat)
+}
+
+```
+
+```{r}
+graph_power2 = function(n){
+  theta = seq(from = 0.01, to = 1, by = 0.01)
+  pwr1 = c()
+  pwr2 = c()
+  for (thet in theta) {
+    #list = matrix(theta, nrow=1, ncol = k)
+    list = matrix(c(0,0,0,0,0,0,0,0,thet))
+    simul = N_simul(list, t_max, n)
+    Qps = Qp(simul, p)
+    
+    #list2 = matrix(c(thet, thet,thet,thet))
+    #simul2 = N_simul(list2, t_max, n)
+    #Qps2 = Qp(simul2, p)
+    #sum = abs(sums(simul, thet, t_max))
+    #print(theta)
+    occ1 = length(Qps[Qps>qchisq(0.95,p)])/n
+    #occ2 = length(Qps[Qps2>qchisq(0.95,p)])/n
+    #occ2 = length(sum[sum>qnorm(0.975)])/n
+    pwr1 = append(pwr1, occ1)
+    #pwr2 = append(pwr2, occ2)
+    
+  }
+  plot(theta, pwr1, col="red",type = "l")
+  #lines(theta, pwr2, col="blue")
+  #abline(h=min(pwr), col="green")
+  #print(min(pwr))
+}
+```
+
+```{r}
+graph_power2(1000)
 ```
 
 ```{r}
