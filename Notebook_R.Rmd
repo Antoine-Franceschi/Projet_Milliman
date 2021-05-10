@@ -334,6 +334,7 @@ simultheta = function(theta, t_max) {
   }
   return(t(matrix(simul)))
 }
+
 N_simul = function(theta, t_max, N){
   mat = matrix(0, ncol=t_max, nrow=N)
   for (i in 1:N){
@@ -342,11 +343,6 @@ N_simul = function(theta, t_max, N){
   return(mat)
 }
 
-
-var_cov = function(t,theta,sigma,bk){
-  var = sum(bk)+ 2*( (1-theta^t)/(1-theta) -t ) * sigma^2/((1-theta^(-1))*(1-theta)) - 2*(theta*sigma)^2* ( (1-theta^t)/(1-theta) -  (1-theta^(2*t))/(1-theta^2) )/(1-theta)^2
-  return(var)
-}
 
 
 sums = function(Sample, theta, t_max){
@@ -359,7 +355,7 @@ sums = function(Sample, theta, t_max){
   bk= c(sigma**2)
   for (j in (1:t_max)){
     sum[j] = mean(Sample[,j])*sqrt(n/j)/sigma 
-    #sqrt(n/var_cov(j,theta,sigma,bk))
+    
     
     
   }
@@ -380,27 +376,26 @@ graph_power = function(n){
   for (thet in theta) {
     simul = N_simul(thet, t_max, n)
     Qps = Qp(simul, p)
-    
-    sum = abs(sums(simul, thet, t_max))
-    print(sum)
+    VRP_s = sqrt(p*t_max)*(VRP(simul, p )-1)/(sqrt(2*(p-1)))
+    #sum = abs(sums(simul, thet, t_max))
+    #print(sum)
     occ1 = length(Qps[Qps>qchisq(0.95,p)])/n
-    occ2 = length(sum[sum>qnorm(0.975)])/n
+    #occ2 = length(sum[sum>qnorm(0.975)])/n #comparaison avec le test utilisé par le milliman
+    occ2 = length(VRP_s[abs(VRP_s)>qnorm(0.975)])/n # comparaison avec le test VRP 
+    
     pwr1 = append(pwr1, occ1)
     pwr2 = append(pwr2, occ2)
     
+    
   }
-  plot(theta, pwr1, col="red")
-  plot(theta, pwr2)
-  abline(h=min(pwr), col="green")
-  print(min(pwr))
+  plot(theta, pwr2, col = "blue", type = "l")
+  lines(theta, pwr1, col="red")
+  #abline(h=min(pwr), col="green")
+  print(min(pwr2))
 }
 
 ```
 
-```{r}
-L=c(1,2,3)
-L[length(L)]
-```
 
 
 ```{r}
@@ -490,6 +485,10 @@ graph_power2 = function(n){
 ```{r}
 graph_power2(1000)
 ```
+
+
+
+
 
 ```{r}
 
