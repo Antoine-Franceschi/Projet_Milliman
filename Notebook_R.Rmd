@@ -134,6 +134,7 @@ Qp= function(Sample, p) {
       #gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
       gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
       rho_j = gamma_j/gamma_0
+      
       Qp_i = Qp_i + d*(rho_j^2)
     }
     Qp = append(Qp, Qp_i)
@@ -165,7 +166,8 @@ Qpstar = function(Sample, p) {
       
       rho_j = gamma_j/gamma_0
       
-      tau_j = sum((Sample[i,(1+j):d]-Y_barre)^2*(Sample[i,1:(d-j)]-Y_barre)^2) /(gamma_0^2)
+      
+      tau_j = mean((Sample[i,(1+j):d]-Y_barre)^2*(Sample[i,1:(d-j)]-Y_barre)^2)/(gamma_0^2) #je pense que l'article à oublié un facteur 1/(n-j) (si on enleve ce coefficient on obtient des valeurs absurdes)
       Qpstar_i = Qpstar_i + d*rho_j^2/tau_j
     }
     Qpstar = append(Qpstar, Qpstar_i)
@@ -402,18 +404,20 @@ theorie_vs_pratique = function(p){
   Qps = c()
   for (thet in theta){
     simul = N_simul(thet, t_max, 1)
-    print(length(simul))
+    
     Qp_theo_j=0
     Qps = c(Qps,Qp(simul, p))
     for(j in (1:p)){
-      Qp_theo_j = Qp_theo_j + thet^(2*j)
+      Qp_theo_j = Qp_theo_j + t_max*thet^(2*j)
     }
     Qp_theo=c(Qp_theo,Qp_theo_j)
     
   }
-  print(Qp_theo)
-  plot(theta, Qps,col = "blue", type = "l")
+  
+  plot(theta, Qps,col = "blue", type = "l", xlab = "Théta", ylab = "Qp pour un modèle AR(1)")
   lines(theta, Qp_theo, col="red")
+  legend(0, 350, legend=c("Qp experimentale","Qp théorique "),
+       col=c( "blue","red"),lty=1:1, cex=0.8)
 }
 theorie_vs_pratique(4)
 ```
@@ -455,7 +459,7 @@ graph_power = function(n){
   }
   plot(theta, pwr1, col="red", type = "l")
   lines(theta, pwr2, col="blue")
-  lines(theta, pwr3, col="green") # la courbe est a zero on ne la voit pas il faut trouver l'erreur 
+  lines(theta, pwr3, col="green") 
   #lines(theta, pwr4, col="orange")
   #abline(h=min(pwr), col="green")
   print(pwr1[1])
