@@ -72,11 +72,13 @@ $$ \hat{Q_p} = n\sum_{j=1}^p \hat{\rho}_j^2~~~~~~~avec ~~~~~ \hat{\rho}_j=\frac{
 Deuxieme test: 
 
 $$\hat{Q_p^*} = n\sum_{j=1}^p \frac{\hat{\rho}_j^2}{\tau_j }$$
-$$avec ~~~~~ \tau_j= \frac{1}{\hat{\gamma}_0^2}\sum_{j=1}^n (Y_t-\bar{Y})^2(Y_{t-j}-\bar{Y})^2 $$ 
+$$avec ~~~~~ \tau_j= \frac{1}{\hat{\gamma}_0^2}\sum_{t=1+j}^n (Y_t-\bar{Y})^2(Y_{t-j}-\bar{Y})^2 $$ 
 Troisième test - Variance Ratio: 
 
 $$ \hat{VR_p}= 1+2\sum_{j=1}^{p-1}(1-\frac{j}{p})\hat{\rho}_j $$
+Quatrième test - Ljung-Box : 
 
+$$ \hat{LB_p} = n(n+2)\sum_{j=1}^p \frac{\hat{\rho}_j^2}{n-j} $$
 
 
 ```{r}
@@ -125,13 +127,14 @@ Qp= function(Sample, p) {
     
     Y_barre = mean(Sample[i,])
     #gamma_0 = mean((Sample[i,]-Y_barre)^2)
-    gamma_0 = mean((Sample[i,])^2)
+    gamma_0 = mean((Sample[i,]-Y_barre)^2)
     Qp_i = 0
     
     for (j in 1:p){
       #gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
-      gamma_j = mean((Sample[i,(1+j):d])*(Sample[i,1:(d-j)]))
+      gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
       rho_j = gamma_j/gamma_0
+      
       Qp_i = Qp_i + d*(rho_j^2)
     }
     Qp = append(Qp, Qp_i)
@@ -163,8 +166,9 @@ Qpstar = function(Sample, p) {
       
       rho_j = gamma_j/gamma_0
       
-      tau_j = sum((Sample[i,(1+j):d]-Y_barre)^2*(Sample[i,1:(d-j)])^2) /(gamma_0^2)
-      Qpstar_i = Qpstar_i + d*(rho_j^2)
+      
+      tau_j = mean((Sample[i,(1+j):d]-Y_barre)^2*(Sample[i,1:(d-j)]-Y_barre)^2)/(gamma_0^2) #je pense que l'article à oublié un facteur 1/(n-j) (si on enleve ce coefficient on obtient des valeurs absurdes)
+      Qpstar_i = Qpstar_i + d*rho_j^2/tau_j
     }
     Qpstar = append(Qpstar, Qpstar_i)
   }
@@ -184,11 +188,11 @@ VRP= function(Sample, p) {
     Y_barre = mean(Sample[i,])
     gamma_0 = mean((Sample[i,]-Y_barre)^2)
     
-    
+    VRP_i = 1
     for (j in 1:(p-1)){
       gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
       rho_j = gamma_j/gamma_0
-      VRP_i = 1 + 2*(1-(j/p))*rho_j
+      VRP_i = VRP_i +  2*(1-(j/p))*rho_j
 
       }
     VRP = append(VRP, VRP_i)
@@ -198,7 +202,33 @@ VRP= function(Sample, p) {
 
 }
 
+################ Calcul Ljung and Box ####################
 
+LB= function(Sample, p) {
+  n=dim(Sample)[1] #n =1000
+  d=dim(Sample)[2] # d = 50
+
+  LB = c()
+  
+  for (i in 1:n) {
+    
+    Y_barre = mean(Sample[i,])
+    #gamma_0 = mean((Sample[i,]-Y_barre)^2)
+    gamma_0 = mean((Sample[i,])^2)
+    LB_i = 0
+    
+    for (j in 1:p){
+      #gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
+      gamma_j = mean((Sample[i,(1+j):d])*(Sample[i,1:(d-j)]))
+      rho_j = gamma_j/gamma_0
+      LB_i = LB_i + (d+2)*(rho_j^2)*d/(d-j)
+    }
+    LB = append(LB, LB_i)
+    
+  }
+  return(LB)
+
+}
 
 
 
@@ -215,7 +245,7 @@ l'hypothèse alternantive est: $ H_1 = \{ |Q_p| \geq q_{chisq}(1-\alpha) \}$
 ```{r}
 
 Graph = function(Sample,p){
-  Qp = Qpstar(Sample,p)
+  Qp = Qp(Sample,p)
   Y=c()
   for(t in 1:length(Qp)){
     p_value= 1-pchisq(Qp[t],df=p)
@@ -272,9 +302,10 @@ p=4
 VR_P=VRP(Y_IMMO,p)
 X=c(1:length(VR_P))
 print(paste0(" alpha = ",0.05))
-a= 1-qnorm(0.975,mean=0,sd = 1)*sqrt(2*(p-1)/(p*length(VR_P)))
-b= 1+qnorm(0.975,mean=0,sd = 1)*sqrt(2*(p-1)/(p*length(VR_P)))
+a= 1-qnorm(0.975,mean=0,sd = 1)*sqrt(2*(p-1)/(p*dim(Y_IMMO)[2]))
+b= 1+qnorm(0.975,mean=0,sd = 1)*sqrt(2*(p-1)/(p*dim(Y_IMMO)[2]))
 #plot(X,VR_P)
+print(length(VR_P))
 hist(VR_P,breaks=20,col="red",density=6,xlab="Valeur de VR_P ",ylab="répartition",main=" Répartition des valeurs ",tck=0.02)
 abline(v=a,col="blue")
 abline(v=b,col="blue")
@@ -320,16 +351,18 @@ $$ \rho_j =\operatorname{Corr}[Y_t,Y_{t-j}]= \theta^j$$
 
 ```{r}
 n=1000 #nombre de simulations
-t_max=50
+t_max=100
 c=0
 sigma = 5
 p=4
 
 simultheta = function(theta, t_max) {
-  simul = c(c/(1-theta))
-  bruit = rnorm(t_max, c, sigma^2)
-  for (i in (1:t_max)) {
-    X_i = theta*simul[i-1] + bruit[i]
+  simul = c(rnorm(1,0, sigma^2/(1-theta^2)))
+  bruit = rnorm(t_max-1, 0, sigma^2)
+  
+  for (i in (1:(t_max-1))) {
+    
+    X_i = theta*simul[i] + bruit[i]
     simul = append(simul, X_i)
   }
   return(t(matrix(simul)))
@@ -338,6 +371,7 @@ simultheta = function(theta, t_max) {
 N_simul = function(theta, t_max, N){
   mat = matrix(0, ncol=t_max, nrow=N)
   for (i in 1:N){
+    
     mat[i,] = simultheta(theta, t_max)
   }
   return(mat)
@@ -362,36 +396,76 @@ sums = function(Sample, theta, t_max){
   sum[1]=0
   return(sum)
 }
-
- 
+theorie_vs_pratique = function(p){
+  theta = seq(from = 0.01, to = 0.99, by = 0.01)
+  n = length(theta)
+  
+  Qp_theo= c()
+  Qps = c()
+  for (thet in theta){
+    simul = N_simul(thet, t_max, 1)
+    
+    Qp_theo_j=0
+    Qps = c(Qps,Qp(simul, p))
+    for(j in (1:p)){
+      Qp_theo_j = Qp_theo_j + t_max*thet^(2*j)
+    }
+    Qp_theo=c(Qp_theo,Qp_theo_j)
+    
+  }
+  
+  plot(theta, Qps,col = "blue", type = "l", xlab = "Théta", ylab = "Qp pour un modèle AR(1)")
+  lines(theta, Qp_theo, col="red")
+  legend(0, 350, legend=c("Qp experimentale","Qp théorique "),
+       col=c( "blue","red"),lty=1:1, cex=0.8)
+}
+theorie_vs_pratique(4)
 ```
 
+```{r}
+
+```
 
 ```{r}
 
 graph_power = function(n){
-  theta = seq(from = 0.01, to = 1, by = 0.01)
+  theta = seq(from = 0.01, to = 0.99, by = 0.01)
   pwr1 = c()
   pwr2 = c()
+  pwr3 = c()
+  pwr4 = c()
   for (thet in theta) {
     simul = N_simul(thet, t_max, n)
+    
     Qps = Qp(simul, p)
-    VRP_s = sqrt(p*t_max)*(VRP(simul, p )-1)/(sqrt(2*(p-1)))
+    VRP_s = sqrt(p*t_max)*(VRP(simul, p)-1)/(sqrt(2*(p-1)))
+    Qpstar= Qpstar(simul, p)
+    #LB = LB(simul, p)
+    
     #sum = abs(sums(simul, thet, t_max))
     #print(sum)
     occ1 = length(Qps[Qps>qchisq(0.95,p)])/n
     #occ2 = length(sum[sum>qnorm(0.975)])/n #comparaison avec le test utilisé par le milliman
     occ2 = length(VRP_s[abs(VRP_s)>qnorm(0.975)])/n # comparaison avec le test VRP 
+    occ3 = length(Qpstar[Qpstar>qchisq(0.95,p)])/n 
+   # occ4 = length(LB[LB>qchisq(0.95,p)])/n   
     
     pwr1 = append(pwr1, occ1)
     pwr2 = append(pwr2, occ2)
+    pwr3 = append(pwr3, occ3)
+   # pwr4 = append(pwr4, occ4)
     
     
   }
-  plot(theta, pwr2, col = "blue", type = "l")
-  lines(theta, pwr1, col="red")
+  plot(theta, pwr1, col="red", type = "l")
+  lines(theta, pwr2, col="blue")
+  lines(theta, pwr3, col="green") 
+  #lines(theta, pwr4, col="orange")
   #abline(h=min(pwr), col="green")
-  print(min(pwr2))
+  print(pwr1[1])
+  print(pwr2[1])
+  print(pwr3[1])
+  #print(pwr4[1])
 }
 
 ```
@@ -401,6 +475,15 @@ graph_power = function(n){
 ```{r}
 graph_power(1000)
 ```
+
+
+```{r}
+simul = N_simul(0.5, t_max, 1)
+VRP_s = sqrt(p*t_max/(2*(p-1)))*(VRP(simul, p)-1)
+print(VRP_s)
+```
+
+
 ```{r}
 list = matrix(c(0.5,0.5,0.5))
 print(sum(list^2))
@@ -420,10 +503,13 @@ x_i = sum(list*simul[(1):(k)]) + bruit[k+1]
 simul = append(simul, x_i)
 
 length(simultheta2(list, 50))
+print(IMMO[1])
 ```
 
-
+Puissance de Qp en fonction 
 ```{r}
+
+
 n=1000 #nombre de simulations
 t_max=50
 c=0
