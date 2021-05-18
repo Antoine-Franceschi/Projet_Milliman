@@ -528,6 +528,7 @@ simultheta2 = function(list , t_max) {
   }
   return(t(matrix(simul)))
 }
+
 N_simul2 = function(list, t_max, N){
   mat = matrix(0, ncol=t_max, nrow=N)
   for (i in 1:N){
@@ -663,47 +664,6 @@ Graph(Y_IMMO,4)
 
 
 
-#        2/ Test based on a infinite-dimensional conditioning set 
-
-La limite du test précédent est qu'on ne considère seulement un nombre fini d'autocorrélations. On va donc utiliser la densité spectrale (qui contient toutes les covariances).
-
-On définit la densité spectrale $f(\lambda)$ par
-
-$$ \gamma_k = \int_{\Pi}^{}f(\lambda)exp(ik\lambda)d\lambda  \\
-k = 0,1,2,... \\
-\Pi = [-\pi, \pi]$$
-
-On définit également le périodigramme par 
-
-$$ I(\lambda) = \lvert w(\lambda) \rvert ^2 \\
-\text{où } w(\lambda) = n^{-1/2} \sum_{t=1}^{n} x_t exp(it\lambda)$$
-
-L'intégrale de la densité spectrale est linéaire en $\lambda$ sous l'hypothèse de MDH.
-
-On a alors l'hypothèse nulle
-
-$$ H_0 = \{\gamma_k = 0,  \forall k \}$$
-
-Ce qui est équivalent à
-
-$$ f(\lambda) = \{f(\lambda) = \frac{\gamma_0}{2\pi},  \forall \lambda \in \Pi \}$$
-
-On introduit donc le périodigramme cumulatif standardisé
-
-$$ Z_n(\lambda) = \sqrt{T} ( \frac{\sum_{j=1}^{[\lambda T  \pi]} I(\lambda_j)}{\sum_{j=1}^{T} I(\lambda_j)} - \frac{\lambda}{\pi} ) \\
-\text{où } \lambda_j = \frac{2\pi j}{n} \\
-j = 1,2,..., n/2$$
-
-A partir de $Z_n$, on peut en déduire le test de Kolmogorov Smirnov
-
-$$ \max_{j=1,...,T} \lvert Z_n(\lambda_j) \rvert$$
-Et le test de Cramer von Mises
-
-$$ \frac{1}{T} \sum_{j=1}^{T} Z_n(\lambda_j ^2)$$
-
-On introduit la statistique de Deo (qui peut être vue comme une version continue de la statistique $Q_p^*$). Elle s'écrit
-
-$$DEO_n = \sum_{j=1}^{n-1}n \frac{\hat{\rho}_j^2}{\tau_j}(\frac{1}{j \pi})^2$$
 
 #        3/ Sélection de p
 
@@ -714,62 +674,66 @@ pi = function(p,n,q,all_rho){
   }else{return (2*p)}
 }
 
-
 Best_p = function(Sample){
-n=dim(Sample)[1] #n =1000
-d=dim(Sample)[2] # d = 50
-q=2.4            # Inglot & Ledwina 2.4
-all_rho_abs = c()
-Y_barre = mean(Sample[n,])
-gamma_0 = mean((Sample[n,]-Y_barre)^2)
-
-for (j in 1:d-1){
-    gamma_j = mean((Sample[n,(1+j):d]-Y_barre)*(Sample[n,1:(d-j)]-Y_barre))
-    rho_j = gamma_j/gamma_0
-    all_rho_abs = append(all_rho_abs,abs(rho_j))
-  }
-L = c()
-for (p in 1:d-1){
-  L_j = Qpstar(Sample,p)-pi(p,n,q,all_rho_abs)
-  L = append(L,t(L_j))
-}
-Lmat= matrix(L,n,d)
-print(dim(Lmat))
-
-
-
-
-max_col <- argmax(Lmat,rows=TRUE)
-
-nb_iter = c()
-for (i in 1:d){
-  nb_iter = append(nb_iter,sum(max_col==i))
+  n = dim(Sample)[1]
+  d = dim(Sample)[2]
+  q = 2.4
+  pi_mat = matrix(0, nrow = n, ncol = d)
+  Qp_mat = matrix(0, nrow = n, ncol = d)
   
-}
-return(which.max(nb_iter))
-}
+  for (i in 1:n){
+    
+    Y_barre = mean(Sample[i,])
+    gamma_0 = mean((Sample[i,]-Y_barre)^2)
+    all_rho_abs_i = c()
+    
 
-#Best_p(Y_EQUITY) #1 pour "n=n"
-#Best_p(Y_IMMO)
-#Best_p(Y_INFL)
+    for (j in 1:(d-1)){
+      gamma_j = mean((Sample[i,(1+j):d]-Y_barre)*(Sample[i,1:(d-j)]-Y_barre))
+      tau_j = mean((Sample[i,(1+j):d]-Y_barre)^2*(Sample[i,1:(d-j)]-Y_barre)^2)/(gamma_0^2)
+      rho_j = gamma_j/gamma_0
+      
+      rho_tilde_j = sqrt((rho_j^2)/tau_j)
+
+      
+      all_rho_abs_i = append(all_rho_abs_i,abs(rho_tilde_j))
+    }
+
+    for (p in 1:(d-1)){
+      pi_j = -pi(p,d,q,all_rho_abs_i)
+      pi_mat[i,p] = pi_j
+    }
+    
+
+  }
+  #print((pi_mat))
+  
+  for (p in 1:(d-1)){
+    Qp_p = Qpstar(Sample,p)
+    Qp_mat[1:n,p] = Qp_p
+  }
+  print(Qp_mat)
+  
+  Lmat= Qp_mat + pi_mat
+  print(Lmat)
+  return(argmax(Lmat,rows=TRUE))
+}
 
 ```
-```{r}
-for (i in 1:10){
-  print(i/10)
-  print(Best_p(N_simul(i/10,50,1000)))
-}
 
-```
+
 ```{r}
-for (i in 1:10){
-  print(i*100)
-  print(Best_p(N_simul(.5,50,i*100)))
-}
+a = simultheta(0,50)
 ```
 
 ```{r}
-Best_p(simultheta(.75,50))
+Best_p(a)
+```
+
+```{r}
+for (i in 1:49){
+  print(Qpstar(a,i))
+}
 ```
 
 
